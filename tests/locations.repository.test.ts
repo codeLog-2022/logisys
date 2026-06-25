@@ -42,6 +42,13 @@ function baseInput(suffix: string): LocationInput {
     temp_zone: "常温",
     usage: "shared",
     owner_shipper_id: null,
+    zone: null,
+    aisle: null,
+    bay: null,
+    level: null,
+    assignment_type: "free",
+    storable_unit_types: [],
+    hazard_allowed: false,
   };
 }
 
@@ -69,6 +76,12 @@ describe("locations repository (REST CRUD against real local DB)", () => {
       serial_managed: false,
       inspection_method: "全数",
       picking_rule: "FIFO",
+      storage_billing_method: "個建て",
+      storage_billing_cycle: "3期制",
+      storage_basis: "期末",
+      closing_day: 99,
+      expiry_acceptance_ratio: 0,
+      inventory_mixing: "allowed",
     });
     shipperId = shipper.id;
   });
@@ -114,7 +127,7 @@ describe("locations repository (REST CRUD against real local DB)", () => {
   it("creates a dedicated location with an owner_shipper_id", async () => {
     const created = await track(
       createLocation(supabase, {
-        code: `${TEST_PREFIX}OWNED`,
+        ...baseInput("OWNED"),
         temp_zone: "冷蔵",
         usage: "dedicated",
         owner_shipper_id: shipperId,

@@ -42,6 +42,11 @@ function baseInput(suffix: string): ProductInput {
     units_per_case: null,
     temp_zone: "常温",
     hazard_class: null,
+    jan_code: null,
+    lot_managed: null,
+    expiry_managed: null,
+    serial_managed: null,
+    units_per_ball: null,
   };
 }
 
@@ -69,6 +74,12 @@ describe("products repository (REST CRUD against real local DB)", () => {
       serial_managed: false,
       inspection_method: "全数",
       picking_rule: "FIFO",
+      storage_billing_method: "個建て",
+      storage_billing_cycle: "3期制",
+      storage_basis: "期末",
+      closing_day: 99,
+      expiry_acceptance_ratio: 0,
+      inventory_mixing: "allowed",
     });
     shipperId = shipper.id;
   });

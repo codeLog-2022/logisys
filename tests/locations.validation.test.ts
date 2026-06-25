@@ -74,4 +74,64 @@ describe("validateLocationInput", () => {
     expect(dedicated.ok).toBe(true);
     if (dedicated.ok) expect(dedicated.value.usage).toBe("dedicated");
   });
+
+  // 0003 追加: zone/aisle/bay/level・assignment_type・storable_unit_types・hazard_allowed の検証
+
+  it("defaults assignment_type to 'free' when omitted and accepts 'fixed'", () => {
+    const omitted = validateLocationInput(valid);
+    expect(omitted.ok).toBe(true);
+    if (omitted.ok) expect(omitted.value.assignment_type).toBe("free");
+
+    const fixed = validateLocationInput({ ...valid, assignment_type: "fixed" });
+    expect(fixed.ok).toBe(true);
+    if (fixed.ok) expect(fixed.value.assignment_type).toBe("fixed");
+  });
+
+  it("rejects an invalid assignment_type enum value", () => {
+    const r = validateLocationInput({ ...valid, assignment_type: "semi" });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.assignment_type).toBeTruthy();
+  });
+
+  it("normalizes optional location attributes (empty -> null) and trims them", () => {
+    const r = validateLocationInput({
+      ...valid,
+      zone: " Z1 ",
+      aisle: "",
+      bay: "  ",
+      level: "L3",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.zone).toBe("Z1");
+      expect(r.value.aisle).toBeNull();
+      expect(r.value.bay).toBeNull();
+      expect(r.value.level).toBe("L3");
+    }
+  });
+
+  it("normalizes storable_unit_types (trim, drop empties, dedupe) and defaults to []", () => {
+    const omitted = validateLocationInput(valid);
+    expect(omitted.ok).toBe(true);
+    if (omitted.ok) expect(omitted.value.storable_unit_types).toEqual([]);
+
+    const r = validateLocationInput({
+      ...valid,
+      storable_unit_types: [" パレット ", "", "ケース", "パレット"],
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.storable_unit_types).toEqual(["パレット", "ケース"]);
+    }
+  });
+
+  it("coerces hazard_allowed (default false, 'on' -> true)", () => {
+    const omitted = validateLocationInput(valid);
+    expect(omitted.ok).toBe(true);
+    if (omitted.ok) expect(omitted.value.hazard_allowed).toBe(false);
+
+    const on = validateLocationInput({ ...valid, hazard_allowed: "on" });
+    expect(on.ok).toBe(true);
+    if (on.ok) expect(on.value.hazard_allowed).toBe(true);
+  });
 });

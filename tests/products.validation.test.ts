@@ -76,4 +76,49 @@ describe("validateProductInput", () => {
     expect(fraction.ok).toBe(false);
     if (!fraction.ok) expect(fraction.errors.units_per_case).toBeTruthy();
   });
+
+  // 0003 追加: jan_code / 三値 boolean / units_per_ball の検証
+
+  it("normalizes jan_code (empty -> null) and accepts a value", () => {
+    const empty = validateProductInput({ ...valid, jan_code: "  " });
+    expect(empty.ok).toBe(true);
+    if (empty.ok) expect(empty.value.jan_code).toBeNull();
+
+    const set = validateProductInput({ ...valid, jan_code: " 4900000000001 " });
+    expect(set.ok).toBe(true);
+    if (set.ok) expect(set.value.jan_code).toBe("4900000000001");
+  });
+
+  it("treats omitted management flags as null (荷主フラグ継承) and 'on' as true", () => {
+    const omitted = validateProductInput(valid);
+    expect(omitted.ok).toBe(true);
+    if (omitted.ok) {
+      expect(omitted.value.lot_managed).toBeNull();
+      expect(omitted.value.expiry_managed).toBeNull();
+      expect(omitted.value.serial_managed).toBeNull();
+    }
+
+    const overridden = validateProductInput({
+      ...valid,
+      lot_managed: "on",
+      expiry_managed: "true",
+      serial_managed: true,
+    });
+    expect(overridden.ok).toBe(true);
+    if (overridden.ok) {
+      expect(overridden.value.lot_managed).toBe(true);
+      expect(overridden.value.expiry_managed).toBe(true);
+      expect(overridden.value.serial_managed).toBe(true);
+    }
+  });
+
+  it("accepts a valid units_per_ball and rejects a non-positive one", () => {
+    const ok = validateProductInput({ ...valid, units_per_ball: "6" });
+    expect(ok.ok).toBe(true);
+    if (ok.ok) expect(ok.value.units_per_ball).toBe(6);
+
+    const zero = validateProductInput({ ...valid, units_per_ball: "0" });
+    expect(zero.ok).toBe(false);
+    if (!zero.ok) expect(zero.errors.units_per_ball).toBeTruthy();
+  });
 });

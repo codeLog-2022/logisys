@@ -36,6 +36,12 @@ function baseInput(suffix: string): ShipperInput {
     serial_managed: false,
     inspection_method: "全数",
     picking_rule: "FIFO",
+    storage_billing_method: "個建て",
+    storage_billing_cycle: "3期制",
+    storage_basis: "期末",
+    closing_day: 99,
+    expiry_acceptance_ratio: 0,
+    inventory_mixing: "allowed",
   };
 }
 
