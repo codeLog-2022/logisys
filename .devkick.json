@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "productId": "ee23ff21-41ef-4222-b7a2-b0ea95674fa3",
+  "productName": "logisys",
+  "appId": "e834971a-2951-4f8b-b660-3f98ea9826c0",
+  "appName": "logisys",
+  "kind": "web",
+  "framework": "next",
+  "createdAt": "2026-06-25T07:42:39.730Z"
+}
