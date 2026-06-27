@@ -7,13 +7,15 @@ import {
   listRevisionsForEntity,
 } from "../src/lib/master_revisions/repository";
 import { createShipper, deleteShipper } from "../src/lib/shippers/repository";
+import { createUser, deleteUser } from "../src/lib/users/repository";
+import { listRoles } from "../src/lib/users/roles.repository";
 import type { ShipperInput } from "../src/lib/shippers/types";
 import type { MasterRevisionInput } from "../src/lib/master_revisions/types";
 
 // 統合テスト: ローカル Supabase スタック前提（`supabase start` 済み）。
 // マスタ改定履歴 CRUD を REST(PostgREST/supabase-js) 経由で実 DB に対して検証する。
-// changed_by は FK なしの素の uuid（0006 の users 前方参照を避ける調整）であることを確認する。
-// entity_id も多態（FKなし）＝実在しない uuid でも登録できる。
+// changed_by は 0006 で users(id) への FK（on delete set null）が後付けされた＝実在 user を参照する。
+// entity_id は多態（FKなし・0006 でも不変）＝実在しない uuid でも登録できる。
 //
 // 接続情報（API_URL / ANON_KEY）は vitest.config.ts が `supabase status` から実行時に注入する。
 
@@ -21,13 +23,12 @@ const apiUrl = process.env.SUPABASE_API_URL;
 const anonKey = process.env.SUPABASE_ANON_KEY;
 
 const SHIPPER_PREFIX = "VITEST-REV-SHIP-";
-// entity_id をテスト識別子として使い、afterAll で残骸ゼロを検証する。
+// entity_id をテスト識別子として使い、afterAll で残骸ゼロを検証する（多態・FKなし）。
 const ENTITY_ID = "9f000000-0000-4000-8000-0000000000aa";
-// FK なしを示すため実在しない uuid を changed_by に使う。
-const CHANGED_BY = "9f000000-0000-4000-8000-0000000000bb";
 
 let supabase: SupabaseClient;
 let shipperId: string;
+let changedBy: string; // 0006 で changed_by が FK 化されたため実在 user を参照する。
 const createdIds = new Set<string>();
 
 function shipperInput(suffix: string): ShipperInput {
@@ -56,7 +57,7 @@ function baseInput(overrides: Partial<MasterRevisionInput> = {}): MasterRevision
     effective_from: "2026-04-01",
     effective_to: null,
     snapshot: { code: "P-001", name: "改定前" },
-    changed_by: CHANGED_BY,
+    changed_by: changedBy,
     ...overrides,
   };
 }
@@ -77,6 +78,18 @@ describe("master_revisions repository (REST CRUD against real local DB)", () => 
     supabase = createClient(apiUrl, anonKey);
     const shipper = await createShipper(supabase, shipperInput("OWNER"));
     shipperId = shipper.id;
+    // 0006 で changed_by が users(id) への FK になったため、実在 user を 1 件用意する。
+    const roles = await listRoles(supabase);
+    const admin = roles.find((r) => r.code === "admin");
+    const user = await createUser(supabase, {
+      email: `${SHIPPER_PREFIX.toLowerCase()}reviser@example.com`,
+      name: "改定者",
+      role_id: admin!.id,
+      shipper_id: shipperId,
+      auth_user_id: null,
+      is_active: true,
+    });
+    changedBy = user.id;
   });
 
   afterEach(async () => {
@@ -93,17 +106,19 @@ describe("master_revisions repository (REST CRUD against real local DB)", () => 
       .eq("entity_id", ENTITY_ID);
     expect(error).toBeNull();
     expect(data ?? []).toHaveLength(0);
+    // changed_by は on delete set null。改定行を消した後で user→shipper を消す。
+    if (changedBy) await deleteUser(supabase, changedBy);
     if (shipperId) await deleteShipper(supabase, shipperId);
   });
 
-  it("records a revision with a JSON snapshot and a non-FK changed_by uuid", async () => {
+  it("records a revision with a JSON snapshot and a real changed_by user", async () => {
     const created = await track(createMasterRevision(supabase, baseInput()));
 
     expect(created.id).toBeTruthy();
     expect(created.entity_type).toBe("product");
     expect(created.entity_id).toBe(ENTITY_ID);
-    // changed_by は FK なし＝実在しない uuid でも保存できる
-    expect(created.changed_by).toBe(CHANGED_BY);
+    // changed_by は 0006 で FK 化＝実在 user を参照する
+    expect(created.changed_by).toBe(changedBy);
     expect(created.snapshot).toEqual({ code: "P-001", name: "改定前" });
 
     const fetched = await getMasterRevision(supabase, created.id);

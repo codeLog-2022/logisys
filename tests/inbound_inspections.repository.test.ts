@@ -18,6 +18,8 @@ import {
 } from "../src/lib/inbound_plans/repository";
 import { createProduct, deleteProduct } from "../src/lib/products/repository";
 import { createShipper, deleteShipper } from "../src/lib/shippers/repository";
+import { createUser, deleteUser } from "../src/lib/users/repository";
+import { listRoles } from "../src/lib/users/roles.repository";
 import type { ShipperInput } from "../src/lib/shippers/types";
 import type { ProductInput } from "../src/lib/products/types";
 import type { InboundInspectionInput } from "../src/lib/inbound_inspections/types";
@@ -25,21 +27,20 @@ import type { InboundInspectionInput } from "../src/lib/inbound_inspections/type
 // 統合テスト: ローカル Supabase スタック前提（`supabase start` 済み）。
 // 入荷検品 CRUD を REST(PostgREST/supabase-js) 経由で実 DB に対して検証する。
 // このテーブルは業務 unique なし＝23505 変換なし（DuplicateCodeError は出さない）。
-// 親子 FK 順序（shipper → product → inbound_plan → line → inspection）を守り、削除は逆順。
-// inspected_by は FK なしの素 uuid（0006 の users 前方参照を避ける調整）であることを確認する。
+// 親子 FK 順序（shipper → product → inbound_plan → line → inspection / user）を守り、削除は逆順。
+// inspected_by は 0006 で users(id) への FK（on delete set null）が後付けされた＝実在 user を参照する。
 
 const apiUrl = process.env.SUPABASE_API_URL;
 const anonKey = process.env.SUPABASE_ANON_KEY;
 
 const PREFIX = "VITEST-INSP-";
-// FK なしを示すため実在しない uuid を inspected_by に使う。
-const INSPECTED_BY = "9f000000-0000-4000-8000-0000000000dd";
 
 let supabase: SupabaseClient;
 let shipperId: string;
 let productId: string;
 let planId: string;
 let planLineId: string;
+let inspectedBy: string; // 0006 で inspected_by が FK 化されたため実在 user を参照する。
 const createdIds = new Set<string>();
 
 function shipperInput(suffix: string): ShipperInput {
@@ -92,7 +93,7 @@ function baseInput(overrides: Partial<InboundInspectionInput> = {}): InboundInsp
     manufacture_date: "2026-01-01",
     exception_type: null,
     note: null,
-    inspected_by: INSPECTED_BY,
+    inspected_by: inspectedBy,
     ...overrides,
   };
 }
@@ -132,6 +133,18 @@ describe("inbound_inspections repository (REST CRUD against real local DB)", () 
       expiry_date: null,
     });
     planLineId = line.id;
+    // 0006 で inspected_by が users(id) への FK になったため、実在 user を 1 件用意する。
+    const roles = await listRoles(supabase);
+    const admin = roles.find((r) => r.code === "admin");
+    const user = await createUser(supabase, {
+      email: `${PREFIX.toLowerCase()}inspector@example.com`,
+      name: "検品者",
+      role_id: admin!.id,
+      shipper_id: shipperId,
+      auth_user_id: null,
+      is_active: true,
+    });
+    inspectedBy = user.id;
   });
 
   afterEach(async () => {
@@ -148,14 +161,15 @@ describe("inbound_inspections repository (REST CRUD against real local DB)", () 
       .eq("shipper_id", shipperId);
     expect(error).toBeNull();
     expect(data ?? []).toHaveLength(0);
-    // 逆順で親を削除
+    // 逆順で親を削除（inspected_by は set null なので user は検品削除後に消せる）
     if (planLineId) await deleteInboundPlanLine(supabase, planLineId);
     if (planId) await deleteInboundPlan(supabase, planId);
+    if (inspectedBy) await deleteUser(supabase, inspectedBy);
     if (productId) await deleteProduct(supabase, productId);
     if (shipperId) await deleteShipper(supabase, shipperId);
   });
 
-  it("creates an inspection (non-FK inspected_by) and reads it back", async () => {
+  it("creates an inspection referencing a real inspected_by user and reads it back", async () => {
     const created = await track(createInboundInspection(supabase, baseInput()));
     expect(created.id).toBeTruthy();
     expect(created.shipper_id).toBe(shipperId);
@@ -163,13 +177,13 @@ describe("inbound_inspections repository (REST CRUD against real local DB)", () 
     expect(created.inspection_method).toBe("全数");
     expect(created.good_qty).toBe(10);
     expect(created.defect_qty).toBe(0);
-    // inspected_by は FK なし＝実在しない uuid でも保存できる
-    expect(created.inspected_by).toBe(INSPECTED_BY);
+    // inspected_by は 0006 で FK 化＝実在 user を参照する
+    expect(created.inspected_by).toBe(inspectedBy);
     expect(created.inspected_at).toBeTruthy();
 
     const fetched = await getInboundInspection(supabase, created.id);
     expect(fetched).not.toBeNull();
-    expect(fetched!.inspected_by).toBe(INSPECTED_BY);
+    expect(fetched!.inspected_by).toBe(inspectedBy);
   });
 
   it("records an exception (qty_short with defect_qty) and lists by shipper", async () => {

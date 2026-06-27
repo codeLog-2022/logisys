@@ -215,16 +215,20 @@ describe("0004 inbound_asn_inspection schema (constraints, FK, cascade, set null
     expect(after.rows[0].inbound_plan_line_id).toBeNull();
   });
 
-  it("accepts putaway_recommendations with a non-FK lot_id and applies deviated default false", async () => {
-    // lot_id は FK なし（0005 の lots 前方参照回避）＝実在しない uuid でも受け入れる。
-    const fakeLotId = "9f000000-0000-4000-8000-0000000000cc";
+  it("accepts putaway_recommendations referencing a real lot and applies deviated default false", async () => {
+    // lot_id は 0005 では素uuidだったが 0006 で lots(id) への FK が後付けされた＝実在 lot を参照する。
+    const lot = await client.query<{ id: string }>(
+      `insert into lots (shipper_id, product_id, lot_no) values ($1, $2, 'LOT-0004-PUT') returning id`,
+      [shipperId, productId],
+    );
+    const lotId = lot.rows[0].id;
     const rec = await client.query<{ deviated: boolean; lot_id: string }>(
       `insert into putaway_recommendations (shipper_id, product_id, lot_id)
        values ($1, $2, $3) returning deviated, lot_id`,
-      [shipperId, productId, fakeLotId],
+      [shipperId, productId, lotId],
     );
     expect(rec.rows[0].deviated).toBe(false);
-    expect(rec.rows[0].lot_id).toBe(fakeLotId);
+    expect(rec.rows[0].lot_id).toBe(lotId);
   });
 
   it("sets putaway_recommendations location refs to NULL when the location is deleted", async () => {
