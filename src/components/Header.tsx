@@ -38,39 +38,37 @@ export function Header() {
   }
 
   return (
-    <header className="border-b border-zinc-200 bg-white">
-      <div className="mx-auto flex max-w-6xl items-center gap-8 px-6 py-3">
-        <Link
-          href="/"
-          className="text-lg font-bold tracking-tight text-zinc-900"
-        >
-          LogiSys
-        </Link>
-        <nav className="flex items-center gap-6">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label} className="group relative">
-              <span className="cursor-default text-sm font-medium text-zinc-500">
-                {group.label}
-              </span>
-              <div className="absolute left-0 top-full z-10 hidden min-w-max flex-col rounded-lg border border-zinc-200 bg-white py-1 shadow-md group-hover:flex">
-                {group.items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`px-4 py-2 text-sm hover:bg-zinc-50 ${
-                      isActive(item.href)
-                        ? "font-medium text-blue-600"
-                        : "text-zinc-700"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
+    <div className="flex items-center gap-8 py-3">
+      <Link
+        href="/"
+        className="text-lg font-bold tracking-tight text-zinc-900"
+      >
+        LogiSys
+      </Link>
+      <nav className="flex items-center gap-6">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} className="group relative">
+            <span className="cursor-default text-sm font-medium text-zinc-500">
+              {group.label}
+            </span>
+            <div className="absolute left-0 top-full z-10 hidden min-w-max flex-col rounded-lg border border-zinc-200 bg-white py-1 shadow-md group-hover:flex">
+              {group.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-4 py-2 text-sm hover:bg-zinc-50 ${
+                    isActive(item.href)
+                      ? "font-medium text-blue-600"
+                      : "text-zinc-700"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
-          ))}
-        </nav>
-      </div>
-    </header>
+          </div>
+        ))}
+      </nav>
+    </div>
   );
 }
