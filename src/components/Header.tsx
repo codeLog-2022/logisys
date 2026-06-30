@@ -27,6 +27,20 @@ const NAV_GROUPS = [
       { href: "/inventory/expiry", label: "賞味期限別" },
     ],
   },
+  {
+    label: "入荷管理",
+    items: [
+      { href: "/inbound-plans", label: "入荷予定一覧" },
+      { href: "/inbound-plans/new", label: "ASN登録" },
+    ],
+  },
+  {
+    label: "請求",
+    items: [
+      { href: "/billing", label: "請求一覧" },
+      { href: "/billing/new", label: "請求書作成" },
+    ],
+  },
 ];
 
 export function Header() {
