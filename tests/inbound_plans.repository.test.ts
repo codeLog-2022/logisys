@@ -20,7 +20,7 @@ import type { InboundPlanInput } from "../src/lib/inbound_plans/types";
 // 親子 FK 順序（shipper は on delete restrict）を守り、入荷予定削除後に荷主を消す。
 
 const apiUrl = process.env.SUPABASE_API_URL;
-const anonKey = process.env.SUPABASE_ANON_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const TEST_PREFIX = "VITEST-IP-";
 const SHIPPER_PREFIX = "VITEST-IP-SHIP-";
@@ -66,12 +66,12 @@ async function track<T extends { id: string }>(p: Promise<T>): Promise<T> {
 
 describe("inbound_plans repository (REST CRUD against real local DB)", () => {
   beforeAll(async () => {
-    if (!apiUrl || !anonKey) {
+    if (!apiUrl || !serviceRoleKey) {
       throw new Error(
-        "SUPABASE_API_URL / SUPABASE_ANON_KEY が未取得です。`supabase start` でローカルスタックを起動してから実行してください。",
+        "SUPABASE_API_URL / SUPABASE_SERVICE_ROLE_KEY が未取得です。`supabase start` でローカルスタックを起動してから実行してください。",
       );
     }
-    supabase = createClient(apiUrl, anonKey);
+    supabase = createClient(apiUrl, serviceRoleKey);
     const shipper = await createShipper(supabase, shipperInput("OWNER"));
     shipperId = shipper.id;
   });

@@ -332,33 +332,6 @@ describe("0006 rls_audit schema (roles/users/audit_logs, back-fill FKs, RLS)", (
     }
   });
 
-  it("has an anon-all policy on every RLS-enabled business table (so anon CRUD survives)", async () => {
-    // 各テーブルに anon ロール向けの全許可ポリシーが存在すること（機能1を壊さない土台）。
-    const tables = [
-      "shippers",
-      "products",
-      "locations",
-      "inventory_transactions",
-      "business_partners",
-      "rate_master",
-      "master_revisions",
-      "shipper_product_code_map",
-      "inbound_plans",
-      "inbound_plan_lines",
-      "inbound_inspections",
-      "putaway_recommendations",
-      "lots",
-      "roles",
-      "users",
-      "audit_logs",
-    ];
-    const r = await client.query<{ tablename: string }>(
-      `select distinct tablename from pg_policies
-       where schemaname = 'public' and 'anon' = any(roles)`,
-    );
-    const withAnon = new Set(r.rows.map((x) => x.tablename));
-    for (const t of tables) {
-      expect(withAnon.has(t), `anon policy should exist on ${t}`).toBe(true);
-    }
-  });
+  // NOTE: anon-all ポリシーの存在確認テストは 0007_rls_phase1b で全撤去されるため削除。
+  // 0007 以降の authenticated ポリシー検証は rls_phase1b.schema.test.ts で行う。
 });

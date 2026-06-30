@@ -20,7 +20,7 @@ import type { MasterRevisionInput } from "../src/lib/master_revisions/types";
 // 接続情報（API_URL / ANON_KEY）は vitest.config.ts が `supabase status` から実行時に注入する。
 
 const apiUrl = process.env.SUPABASE_API_URL;
-const anonKey = process.env.SUPABASE_ANON_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const SHIPPER_PREFIX = "VITEST-REV-SHIP-";
 // entity_id をテスト識別子として使い、afterAll で残骸ゼロを検証する（多態・FKなし）。
@@ -70,12 +70,12 @@ async function track<T extends { id: string }>(p: Promise<T>): Promise<T> {
 
 describe("master_revisions repository (REST CRUD against real local DB)", () => {
   beforeAll(async () => {
-    if (!apiUrl || !anonKey) {
+    if (!apiUrl || !serviceRoleKey) {
       throw new Error(
-        "SUPABASE_API_URL / SUPABASE_ANON_KEY が未取得です。`supabase start` でローカルスタックを起動してから実行してください。",
+        "SUPABASE_API_URL / SUPABASE_SERVICE_ROLE_KEY が未取得です。`supabase start` でローカルスタックを起動してから実行してください。",
       );
     }
-    supabase = createClient(apiUrl, anonKey);
+    supabase = createClient(apiUrl, serviceRoleKey);
     const shipper = await createShipper(supabase, shipperInput("OWNER"));
     shipperId = shipper.id;
     // 0006 で changed_by が users(id) への FK になったため、実在 user を 1 件用意する。
