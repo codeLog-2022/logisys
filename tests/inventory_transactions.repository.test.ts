@@ -16,7 +16,7 @@ import type { CreateTransactionInput } from "../src/lib/inventory_transactions/t
 // 接続情報（API_URL / ANON_KEY）は vitest.config.ts が `supabase status` から実行時に注入する。
 
 const apiUrl = process.env.SUPABASE_API_URL;
-const anonKey = process.env.SUPABASE_ANON_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // テストデータは固有プレフィックスで識別し、後始末漏れを検出できるようにする
 const TEST_PREFIX = "VITEST-TXN-";
@@ -56,12 +56,12 @@ async function track(
 
 describe("inventory_transactions repository (REST CRUD against real local DB)", () => {
   beforeAll(async () => {
-    if (!apiUrl || !anonKey) {
+    if (!apiUrl || !serviceRoleKey) {
       throw new Error(
-        "SUPABASE_API_URL / SUPABASE_ANON_KEY が未取得です。`supabase start` でローカルスタックを起動してから実行してください。",
+        "SUPABASE_API_URL / SUPABASE_SERVICE_ROLE_KEY が未取得です。`supabase start` でローカルスタックを起動してから実行してください。",
       );
     }
-    supabase = createClient(apiUrl, anonKey);
+    supabase = createClient(apiUrl, serviceRoleKey);
 
     // 前提: テスト用荷主を作成
     const { data: shipperData, error: shipperError } = await supabase

@@ -28,10 +28,13 @@ function loadSupabaseEnv(): Record<string, string> {
     }
     // DB 直結（VIEW 検証用）と、REST(PostgREST) 経由検証用（supabase-js）の両方を注入。
     // いずれも `supabase status` 由来でファイルに秘密鍵を残さない。
+    // 0007 以降は RLS が実効化されるため、repository テストは service_role クライアントで実行する。
+    // （anon クライアントでは RLS に遮断される）
     return {
       DATABASE_URL: map.DB_URL ?? "",
       SUPABASE_API_URL: map.API_URL ?? "",
       SUPABASE_ANON_KEY: map.ANON_KEY ?? "",
+      SUPABASE_SERVICE_ROLE_KEY: map.SERVICE_ROLE_KEY ?? "",
     };
   } catch {
     // supabase 未起動などで取得できない場合はテスト側で明示エラーにする

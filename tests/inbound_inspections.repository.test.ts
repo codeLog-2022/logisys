@@ -31,7 +31,7 @@ import type { InboundInspectionInput } from "../src/lib/inbound_inspections/type
 // inspected_by は 0006 で users(id) への FK（on delete set null）が後付けされた＝実在 user を参照する。
 
 const apiUrl = process.env.SUPABASE_API_URL;
-const anonKey = process.env.SUPABASE_ANON_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const PREFIX = "VITEST-INSP-";
 
@@ -106,12 +106,12 @@ async function track<T extends { id: string }>(p: Promise<T>): Promise<T> {
 
 describe("inbound_inspections repository (REST CRUD against real local DB)", () => {
   beforeAll(async () => {
-    if (!apiUrl || !anonKey) {
+    if (!apiUrl || !serviceRoleKey) {
       throw new Error(
-        "SUPABASE_API_URL / SUPABASE_ANON_KEY が未取得です。`supabase start` でローカルスタックを起動してから実行してください。",
+        "SUPABASE_API_URL / SUPABASE_SERVICE_ROLE_KEY が未取得です。`supabase start` でローカルスタックを起動してから実行してください。",
       );
     }
-    supabase = createClient(apiUrl, anonKey);
+    supabase = createClient(apiUrl, serviceRoleKey);
     const shipper = await createShipper(supabase, shipperInput("OWNER"));
     shipperId = shipper.id;
     const product = await createProduct(supabase, productInput("OWNER"));

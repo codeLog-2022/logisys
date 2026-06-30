@@ -18,7 +18,7 @@ import type { ShipperInput } from "../src/lib/shippers/types";
 // テストで作成した荷主は afterEach で明示削除し、DB に痕跡を残さない（最後に残骸ゼロを検証）。
 
 const apiUrl = process.env.SUPABASE_API_URL;
-const anonKey = process.env.SUPABASE_ANON_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // テストデータは固有プレフィックスで識別し、後始末漏れを検出できるようにする
 const TEST_PREFIX = "VITEST-SHIP-";
@@ -53,12 +53,12 @@ async function track<T extends { id: string }>(p: Promise<T>): Promise<T> {
 
 describe("shippers repository (REST CRUD against real local DB)", () => {
   beforeAll(() => {
-    if (!apiUrl || !anonKey) {
+    if (!apiUrl || !serviceRoleKey) {
       throw new Error(
-        "SUPABASE_API_URL / SUPABASE_ANON_KEY が未取得です。`supabase start` でローカルスタックを起動してから実行してください。",
+        "SUPABASE_API_URL / SUPABASE_SERVICE_ROLE_KEY が未取得です。`supabase start` でローカルスタックを起動してから実行してください。",
       );
     }
-    supabase = createClient(apiUrl, anonKey);
+    supabase = createClient(apiUrl, serviceRoleKey);
   });
 
   afterEach(async () => {
